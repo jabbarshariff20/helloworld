@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="e70c4946-ee36-4dd5-b1e1-edd3334f2f10" >
+		<http:request-connection protocol="HTTPS" host="jsonplaceholder.typicode.com" port="443" />
+	</http:request-config>
+	<flow name="myfirstdemoFlow" doc:id="17b12564-0c6f-4283-954e-4e0a563c4a25" >		
+		<logger level="INFO" doc:name="Logger" doc:id="b13e231a-c2bf-4041-845c-88962f531216" />
+		<ee:transform doc:name="Transform Message" doc:id="09b8361c-97f5-4153-9ff1-8b209fa129bf" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload.orders]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="initializeResponse" ><![CDATA[%dw 2.0
+output application/json
+---
+[]]]></ee:set-variable>
+				<ee:set-variable variableName="index" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.index]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<foreach doc:name="For Each" doc:id="1fdc9626-4618-4e8d-8b99-75ee9265bf8a" >
+			<http:request method="GET" doc:name="Request" doc:id="bad3eca2-4afd-4b53-baf5-2ab88a88dfc3" config-ref="HTTP_Request_configuration" path="/todos/1" />
+			<ee:transform doc:name="Transform Message" doc:id="4d8aee48-3fc6-49ae-aafd-337e28a6a8b8">
+				<ee:message>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="initializeResponse"><![CDATA[%dw 2.0
+output application/json
+---
+vars.initializeResponse ++ [payload]]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="9ee1ce4f-cc9c-4628-969f-b4446729d2f9" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.initializeResponse]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="23cee3a6-d02f-4bb1-9097-d1f7b8af3601" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( $ - "userId" - "id" - "completed" ++ ({
+	"userId" : ('$$' + 1),
+	"id": uuid(),
+	"completed" : if ('$$' > vars.index) true  else false
+}))]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="89cab0fd-1ec8-4107-8d99-59f844f827ef" >
+			<when expression="#[sizeOf(payload filter $.completed == true) &gt; 0]">
+				<ee:transform doc:name="Transform Message" doc:id="22dd21fe-882f-47a4-baf8-8cb8f2440736" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload filter $.completed == true]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<raise-error doc:name="Raise error" doc:id="8e828b87-b3d7-4152-a8a5-ecbec3cd9fec" type="CUSTOM:ERROR"/>
+			</otherwise>
+		</choice>
+		<error-handler>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="db1e172c-b3d8-4c89-a0c1-fa9809b6d9d5" type="CUSTOM:ERROR">
+				<ee:transform doc:name="Transform Message" doc:id="95d1277e-42f3-4659-afdd-f08b59c5f12b" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	status: "No Pending Orders"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7b84fb6f-ae11-4ce0-b09d-4e55bd0b4ac8" >
+				<ee:transform doc:name="Transform Message" doc:id="db755b55-9aa6-4b80-821a-42af63375e62" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Status" : "Technical Exceptions"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

@@ -1,0 +1,102 @@
+#%RAML 1.0
+title: Order Processing API
+version: v1
+baseUri: /api
+
+mediaType: application/json
+
+types:
+
+  OrderRequest:
+    type: object
+    properties:
+      index:
+        type: string
+        example: "0"
+      orders:
+        type: integer[]
+        example: [1, 2, 3, 4]
+
+  TodoResponse:
+    type: object
+    properties:
+      title:
+        type: string
+      userId:
+        type: integer
+      id:
+        type: string
+      completed:
+        type: boolean
+
+  NoPendingOrders:
+    type: object
+    properties:
+      status:
+        type: string
+    example:
+      status: "No Pending Orders"
+
+  TechnicalException:
+    type: object
+    properties:
+      Status:
+        type: string
+    example:
+      Status: "Technical Exceptions"
+
+/test:
+  post:
+    description: |
+      Processes the orders array and invokes an external service
+      once for each order. Returns only records whose completed
+      flag evaluates to true.
+
+    body:
+      application/json:
+        type: OrderRequest
+        example:
+          {
+            "index": "0",
+            "orders": [1,2,3,4]
+          }
+
+    responses:
+      200:
+        body:
+          application/json:
+            type: TodoResponse[]
+            example:
+              [
+                {
+                  "title": "delectus aut autem",
+                  "userId": 2,
+                  "id": "550e8400-e29b-41d4-a716-446655440000",
+                  "completed": true
+                },
+                {
+                  "title": "delectus aut autem",
+                  "userId": 3,
+                  "id": "550e8400-e29b-41d4-a716-446655440001",
+                  "completed": true
+                },
+                {
+                  "title": "delectus aut autem",
+                  "userId": 4,
+                  "id": "550e8400-e29b-41d4-a716-446655440002",
+                  "completed": true
+                }
+              ]
+
+      500:
+        body:
+          application/json:
+            type: NoPendingOrders | TechnicalException
+            examples:
+              noPendingOrders:
+                value:
+                  status: "No Pending Orders"
+
+              technicalException:
+                value:
+                  Status: "Technical Exceptions"
